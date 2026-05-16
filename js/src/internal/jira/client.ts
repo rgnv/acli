@@ -251,6 +251,8 @@ export async function getBuffer(
   query?: Record<string, string>,
 ): Promise<Buffer> {
   const url = buildURL(client.baseURL, urlPath, query);
-  const response = await doRequest(client, 'GET', url);
+  const response = await doRequest(client, 'GET', url, {
+    headers: { Accept: 'application/octet-stream' },
+  });
   return Buffer.from(await response.arrayBuffer());
 }
