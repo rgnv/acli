@@ -427,11 +427,28 @@ export async function getAttachmentMeta(client: JiraClient): Promise<AttachmentM
 }
 
 /**
+ * Options for downloadAttachmentContent.
+ */
+export interface DownloadAttachmentOptions {
+  /**
+   * Optional callback invoked with the redirect Location URL before the CDN
+   * fetch is issued. Return false (or a Promise resolving false) to abort with
+   * an allowlist-failure error. Used by callers that need an SSRF allowlist
+   * around CDN redirect targets. If omitted, all 3xx redirects are followed.
+   */
+  validateRedirectUrl?: (url: string) => boolean | Promise<boolean>;
+}
+
+/**
  * Downloads the binary content of an attachment by ID.
  * Jira returns a 303 redirect to a CDN URL; we follow it without
  * forwarding auth headers (CDNs reject unexpected Authorization).
  */
-export async function downloadAttachmentContent(client: JiraClient, id: string): Promise<Buffer> {
+export async function downloadAttachmentContent(
+  client: JiraClient,
+  id: string,
+  options?: DownloadAttachmentOptions,
+): Promise<Buffer> {
   const url = `${client.baseURL}/rest/api/3/attachment/content/${id}`;
   const encoded = client.email
     ? Buffer.from(`${client.email}:${client.apiToken}`).toString('base64')
@@ -455,6 +472,12 @@ export async function downloadAttachmentContent(client: JiraClient, id: string):
     const location = response.headers.get('location');
     if (!location) {
       throw new Error(`Attachment redirect ${response.status} without Location header`);
+    }
+    if (options?.validateRedirectUrl) {
+      const allowed = await options.validateRedirectUrl(location);
+      if (!allowed) {
+        throw new Error(`Attachment redirect target failed allowlist: ${location.replace(/[?#].*$/, '')}`);
+      }
     }
     const cdnResponse = await fetch(location, { method: 'GET' });
     if (!cdnResponse.ok) {
