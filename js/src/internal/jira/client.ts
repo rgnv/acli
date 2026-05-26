@@ -113,6 +113,13 @@ async function doRequest(
   return response;
 }
 
+async function parseJsonResponse<T>(response: Response): Promise<T> {
+  if (response.status === 204) return null as T;
+  const text = await response.text();
+  if (!text) return null as T;
+  return JSON.parse(text) as T;
+}
+
 /**
  * GET request. Parses JSON response.
  */
@@ -123,8 +130,7 @@ export async function get<T>(
 ): Promise<T> {
   const url = buildURL(client.baseURL, urlPath, query);
   const response = await doRequest(client, 'GET', url);
-  if (response.status === 204) return null as T;
-  return response.json() as Promise<T>;
+  return parseJsonResponse<T>(response);
 }
 
 /**
@@ -140,8 +146,7 @@ export async function post<T>(
     body: JSON.stringify(body),
     headers: { 'Content-Type': 'application/json' },
   });
-  if (response.status === 204) return null as T;
-  return response.json() as Promise<T>;
+  return parseJsonResponse<T>(response);
 }
 
 /**
@@ -157,8 +162,7 @@ export async function put<T>(
     body: JSON.stringify(body),
     headers: { 'Content-Type': 'application/json' },
   });
-  if (response.status === 204) return null as T;
-  return response.json() as Promise<T>;
+  return parseJsonResponse<T>(response);
 }
 
 /**
@@ -186,8 +190,7 @@ export async function deleteWithBody<T>(
     body: JSON.stringify(body),
     headers: { 'Content-Type': 'application/json' },
   });
-  if (response.status === 204) return null as T;
-  return response.json() as Promise<T>;
+  return parseJsonResponse<T>(response);
 }
 
 /**
@@ -203,8 +206,7 @@ export async function patch<T>(
     body: JSON.stringify(body),
     headers: { 'Content-Type': 'application/json' },
   });
-  if (response.status === 204) return null as T;
-  return response.json() as Promise<T>;
+  return parseJsonResponse<T>(response);
 }
 
 /**
@@ -230,8 +232,7 @@ export async function uploadFile<T>(
     body: form as FormData,
     headers: { 'X-Atlassian-Token': 'no-check' },
   });
-  if (response.status === 204) return null as T;
-  return response.json() as Promise<T>;
+  return parseJsonResponse<T>(response);
 }
 
 /**
