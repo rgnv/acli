@@ -202,13 +202,18 @@ export async function getIssueWatchers(client: JiraClient, issueIdOrKey: string)
 }
 
 // addIssueWatcher adds a watcher to an issue.
-// The Jira API expects the account ID as a quoted JSON string in the body.
+// Jira's POST /rest/api/3/issue/{key}/watchers expects a JSON-string body
+// (e.g., "712020:abc-...").  The shared `post()` helper already calls
+// JSON.stringify on whatever body it receives, so we pass the raw accountID
+// here -- pre-stringifying would double-encode and Jira returns 404 because
+// it cannot resolve "\"712020:abc-...\"" (literal quotes inside quotes) as
+// a user account.
 export async function addIssueWatcher(
   client: JiraClient,
   issueIdOrKey: string,
   accountID: string,
 ): Promise<void> {
-  return await post(client, `/rest/api/3/issue/${issueIdOrKey}/watchers`, JSON.stringify(accountID));
+  return await post(client, `/rest/api/3/issue/${issueIdOrKey}/watchers`, accountID);
 }
 
 // removeIssueWatcher removes a watcher from an issue.
